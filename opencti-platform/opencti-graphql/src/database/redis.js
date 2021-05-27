@@ -47,6 +47,7 @@ const redisOptions = (database) => ({
   showFriendlyErrorStack: true,
 });
 
+export const globalRedis = new Redis(redisOptions());
 export const pubsub = new RedisPubSub({
   publisher: new Redis(redisOptions()),
   subscriber: new Redis(redisOptions()),

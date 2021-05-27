@@ -226,7 +226,6 @@ const LeftBar = ({ t, location, classes }) => {
               selected={location.pathname.includes('/dashboard/settings')}
               dense={false}
               classes={{ root: classes.menuItem }}
-              style={{ marginBottom: 50 }}
             >
               <ListItemIcon style={{ minWidth: 35 }}>
                 <CogOutline />
@@ -234,6 +233,32 @@ const LeftBar = ({ t, location, classes }) => {
               <ListItemText primary={t('Settings')} />
             </MenuItem>
           </Security>
+          <Divider />
+
+          <MenuItem
+            component='a'
+            href="http://localhost:9001"
+            classes={{ root: classes.menuItem }}
+            >
+            <ListItemText primary={t('Cortex')} />
+          </MenuItem>
+
+          <MenuItem
+            component='a'
+            href="http://localhost:9000"
+            classes={{ root: classes.menuItem }}
+            >
+            <ListItemText primary={t('TheHive')} />
+          </MenuItem>
+
+          <MenuItem
+            component='a'
+            href="http://localhost:443"
+            classes={{ root: classes.menuItem }}
+            >
+            <ListItemText primary={t('MISP')} />
+          </MenuItem>
+
         </MenuList>
       </Security>
     </Drawer>

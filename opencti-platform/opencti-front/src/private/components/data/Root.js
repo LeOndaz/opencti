@@ -6,6 +6,7 @@ import Tasks from './Tasks';
 import Taxii from './Taxii';
 import { BoundaryRoute } from '../Error';
 import RootConnector from './connectors/Root';
+import RootOfflineConnector from './connectors/RootOfflineConnector';
 
 const Root = () => (
   <Switch>
@@ -22,9 +23,14 @@ const Root = () => (
       component={Connectors}
     />
     <BoundaryRoute
+      path="/dashboard/data/connectors/offline/:id"
+      render={(routeProps) => <RootOfflineConnector {...routeProps}/>}
+    />
+    <BoundaryRoute
       path="/dashboard/data/connectors/:connectorId"
       render={(routeProps) => <RootConnector {...routeProps} />}
     />
+
     <BoundaryRoute exact path="/dashboard/data/taxii" component={Taxii} />
   </Switch>
 );

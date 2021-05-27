@@ -9,6 +9,8 @@ import ConnectorsStatus, {
   connectorsStatusQuery,
 } from './connectors/ConnectorsStatus';
 import Loader from '../../../components/Loader';
+import OfflineConnectors, { offlineConnectorsQuery } from './connectors/OfflineConnectors';
+import { ConnectorsContext } from './connectors/connectorsContext';
 
 const styles = () => ({
   container: {
@@ -20,26 +22,40 @@ class Connectors extends Component {
   render() {
     const { classes } = this.props;
     return (
-      <div className={classes.container}>
-        <QueryRenderer
-          query={workersStatusQuery}
-          render={({ props }) => {
-            if (props) {
-              return <WorkersStatus data={props} />;
-            }
-            return <div> &nbsp; </div>;
-          }}
-        />
-        <QueryRenderer
-          query={connectorsStatusQuery}
-          render={({ props }) => {
-            if (props) {
-              return <ConnectorsStatus data={props} />;
-            }
-            return <Loader />;
-          }}
-        />
-      </div>
+      <ConnectorsContext.Provider>
+        <div className={classes.container}>
+          <QueryRenderer
+            query={workersStatusQuery}
+            render={({ props }) => {
+              if (props) {
+                return <WorkersStatus data={props} />;
+              }
+              return <div> &nbsp; </div>;
+            }}
+          />
+
+          <QueryRenderer
+            query={connectorsStatusQuery}
+            render={({ props }) => {
+              if (props) {
+                return <ConnectorsStatus data={props} />;
+              }
+              return <Loader />;
+            }}
+          />
+
+          <br/>
+          <QueryRenderer
+            query={offlineConnectorsQuery}
+            render={({ props }) => {
+              if (props) {
+                return <OfflineConnectors data={props} />;
+              }
+              return <div> &nbsp; </div>;
+            }}
+          />
+        </div>
+      </ConnectorsContext.Provider>
     );
   }
 }

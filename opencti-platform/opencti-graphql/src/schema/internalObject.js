@@ -10,6 +10,7 @@ export const ENTITY_TYPE_USER = 'User';
 export const ENTITY_TYPE_ROLE = 'Role';
 export const ENTITY_TYPE_CAPABILITY = 'Capability';
 export const ENTITY_TYPE_CONNECTOR = 'Connector';
+export const ENTITY_TYPE_OFFLINE_CONNECTOR = 'OfflineConnector';
 export const ENTITY_TYPE_ATTRIBUTE = 'Attribute';
 export const ENTITY_TYPE_WORKSPACE = 'Workspace';
 export const ENTITY_TYPE_WORK = 'work';
@@ -157,6 +158,7 @@ export const internalObjectsAttributes = {
     'i_created_at_year',
     'updated_at',
   ],
+  // [ENTITY_TYPE_OFFLINE_CONNECTOR]: ['internal_id', 'standard_id', 'entity_type', 'path'],
   [ENTITY_TYPE_ATTRIBUTE]: ['internal_id', 'standard_id', 'entity_type', 'key', 'value'],
   [ENTITY_TYPE_WORKSPACE]: [
     'internal_id',

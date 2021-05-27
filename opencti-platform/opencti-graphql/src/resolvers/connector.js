@@ -1,12 +1,17 @@
 import {
   connectorDelete,
+  offlineConnectorByDirName,
   connectors,
+  offlineConnectors,
+  offlineConnectorModify,
   connectorsForExport,
   connectorsForImport,
   loadConnectorById,
   pingConnector,
   registerConnector,
+  runOfflineConnector,
   resetStateConnector,
+  offlineConnectorConfigByDirName,
 } from '../domain/connector';
 import {
   connectorForWork,
@@ -29,6 +34,9 @@ const connectorResolvers = {
     connectorsForExport: (_, __, { user }) => connectorsForExport(user),
     connectorsForImport: (_, __, { user }) => connectorsForImport(user),
     works: (_, args, { user }) => findAll(user, args),
+    offlineConnectorConfig: (_, { dirName }, { user }) => offlineConnectorConfigByDirName(user, dirName),
+    offlineConnectors: (_, args, { user }) => offlineConnectors(user),
+    offlineConnector: (_, { dirName }, { user }) => offlineConnectorByDirName(user, dirName),
   },
   Connector: {
     connector_user: (connector, _, { user }) => findUserById(user, connector.connector_user_id),
@@ -40,10 +48,13 @@ const connectorResolvers = {
     tracking: (work) => redisGetWork(work.id),
   },
   Mutation: {
+    // Config part
     deleteConnector: (_, { id }, { user }) => connectorDelete(user, id),
     registerConnector: (_, { input }, { user }) => registerConnector(user, input),
+    runOfflineConnector: (_, { id }, { user }) => runOfflineConnector(user, id),
     resetStateConnector: (_, { id }, { user }) => resetStateConnector(user, id),
     pingConnector: (_, { id, state }, { user }) => pingConnector(user, id, state),
+    modifyOfflineConnector: (_, { dirName, config }, { user }) => offlineConnectorModify(user, dirName, config),
     // Work part
     workAdd: async (_, { connectorId, friendlyName }, { user }) => {
       const connector = await loadConnectorById(user, connectorId);

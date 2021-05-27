@@ -25,6 +25,7 @@ scalar DateTime
 scalar ConstraintString
 scalar ConstraintNumber
 scalar Upload
+scalar JSONString
 enum Status {
   wait
   progress
@@ -809,7 +810,7 @@ input RegisterConnectorInput {
   id: ID!
   name: String!
   type: ConnectorType!
-  scope: [String!]
+  scope: String!
   auto: Boolean
   only_contextual: Boolean
 }
@@ -828,6 +829,20 @@ type ConnectorConfig {
   push: String!
   push_exchange: String!
 }
+
+type OfflineConnector {
+  id: ID!
+  name: String!
+  path: String!
+  connector_scope: String!
+  connector_type: String!
+}
+
+input OfflineConnectorInput {
+  id: String!
+  path: String
+}
+
 type Connector implements BasicObject & InternalObject {
   id: ID! # internal_id
   standard_id: String!
@@ -7553,6 +7568,9 @@ type Query {
   capabilities(first: Int): CapabilityConnection @auth(for: [SETTINGS_SETACCESSES])
   connector(id: String!): Connector @auth(for: [MODULES])
   connectors: [Connector] @auth(for: [MODULES])
+  offlineConnectorConfig(dirName: ID!): JSONString @auth(for: [MODULES])
+  offlineConnector(dirName: ID!): OfflineConnector @auth (for: [MODULES])
+  offlineConnectors: [OfflineConnector] @auth (for: [MODULES])
   connectorsForExport: [Connector] @auth(for: [KNOWLEDGE])
   connectorsForImport: [Connector] @auth(for: [KNOWLEDGE])
   works(
@@ -8745,6 +8763,8 @@ type Mutation {
   roleEdit(id: ID!): RoleEditMutations @auth(for: [SETTINGS_SETACCESSES])
   pingConnector(id: ID!, state: String): Connector @auth(for: [CONNECTORAPI])
   registerConnector(input: RegisterConnectorInput): Connector @auth(for: [CONNECTORAPI])
+  runOfflineConnector(dirName: ID!): OfflineConnector @auth(for: [CONNECTORAPI])
+  modifyOfflineConnector(dirName: ID!, config: JSONString!): JSONString @auth(for: [CONNECTORAPI])
   resetStateConnector(id: ID!): Connector @auth(for: [MODULES_MODMANAGE])
   deleteConnector(id: ID!): ID! @auth(for: [MODULES_MODMANAGE])
   attributeAdd(input: AttributeAddInput): Attribute @auth(for: [SETTINGS])

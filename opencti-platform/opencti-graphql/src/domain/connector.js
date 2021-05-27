@@ -4,6 +4,15 @@ import { connectorConfig, registerConnectorQueues, unregisterConnector } from '.
 import { ENTITY_TYPE_CONNECTOR } from '../schema/internalObject';
 import { FunctionalError } from '../config/errors';
 import { now, sinceNowInMinutes } from '../utils/format';
+import { logApp } from '../config/conf';
+import { globalRedis } from '../database/redis';
+
+const childProcess = require('child_process');
+
+const fs = require('fs');
+const yml = require('js-yaml');
+
+const fsp = fs.promises;
 
 export const CONNECTOR_INTERNAL_ENRICHMENT = 'INTERNAL_ENRICHMENT'; // Entity types to support (Report, Hash, ...) -> enrich-
 export const CONNECTOR_INTERNAL_IMPORT_FILE = 'INTERNAL_IMPORT_FILE'; // Files mime types to support (application/json, ...) -> import-
@@ -32,6 +41,105 @@ export const connectors = (user) => {
     map((conn) => completeConnector(conn), elements)
   );
 };
+
+export const getConnectorsBaseDir = () => {
+  return '/home/leondaz/crime_scene/connectors';
+};
+
+export const getIndexFilePath = () => {
+  return `${getConnectorsBaseDir()}/index.json`;
+};
+
+export const offlineConnectorsDirs = () => {
+  const baseDir = getConnectorsBaseDir();
+
+  return fsp
+    .readdir(baseDir)
+    .then((names) => {
+      return names
+        .filter((name) => !name.startsWith('.'))
+        .filter((name) => fs.lstatSync(`${baseDir}${name}`).isDirectory())
+        .map((name) => `${baseDir}${name}`);
+    })
+    .catch((err) => logApp.error(err));
+};
+
+export const indexOfflineConnectors = () => {
+  const baseDir = getConnectorsBaseDir();
+
+  return offlineConnectorsDirs()
+    .then((dirs) => {
+      // const promises = [];
+      const index = {};
+
+      dirs.forEach((dir) => {
+        const configPath = `${dir}/src/config.yml`;
+        const name = dir.split('/').filter(Boolean).pop();
+        index[name.toLowerCase()] = configPath;
+
+        // const promise = fsp
+        //   .readFile(configPath)
+        //   .then((content) => {
+        //     const ymlContent = yml.load(content);
+        //     index[ymlContent.connector.name] = configPath;
+        //   })
+        //   .catch((err) => logApp.error(err));
+        //
+        // promises.push(promise);
+      });
+
+      return index;
+    })
+    .then((index) => fsp.writeFile(`${baseDir}/index.json`, JSON.stringify(index, undefined, 2)))
+    .catch((err) => logApp.error(err));
+};
+
+export const getOfflineConnectorsIndex = () => {
+  const indexPath = getIndexFilePath();
+  return fsp.readFile(indexPath).then(JSON.parse).catch(indexOfflineConnectors);
+};
+
+export const offlineConnectorConfigByDirName = (user, name) => {
+  return getOfflineConnectorsIndex().then((index) => {
+    if (!index[name.toLowerCase()]) {
+      throw FunctionalError('Connector with specified ID does not exist.');
+    }
+
+    return fsp.readFile(index[name]).then(yml.load).then(JSON.stringify);
+  });
+};
+
+export const readOfflineConnectorConfig = (path) => {
+  return fsp.readFile(`${path}/src/config.yml`).then((content) => {
+    const ymlContent = yml.load(content);
+    return {
+      path,
+      id: ymlContent.connector.id,
+      name: ymlContent.connector.name,
+      connector_type: ymlContent.connector.type,
+      connector_scope: ymlContent.connector.scope,
+    };
+  });
+};
+
+export const offlineConnectors = (user) => {
+  if (user) {
+    logApp.info('AUTH');
+  }
+
+  return offlineConnectorsDirs()
+    .then((dirs) => dirs.map((dir) => readOfflineConnectorConfig(dir)))
+    .catch((err) => logApp.error(`ERROR IN OFFLINE CONNECTOR: ${err}`));
+};
+
+export const offlineConnectorByDirName = (user, dirName) =>
+  offlineConnectorsDirs()
+    .then((dirs) =>
+      dirs.find((path) => {
+        return path.split('/').filter(Boolean).pop() === dirName;
+      })
+    )
+    .then((path) => readOfflineConnectorConfig(path));
 
 export const connectorsFor = async (user, type, scope, onlyAlive = false, onlyAuto = false, onlyContextual = false) => {
   const connects = await connectors(user);
@@ -118,9 +226,36 @@ export const registerConnector = async (user, connectorData) => {
   return completeConnector(createdConnector);
 };
 
+export const runOfflineConnector = (user, dirName) => {
+  // vul
+  return offlineConnectorByDirName(dirName).then((offlineConnector) => {
+    const ps = childProcess.spawn(`${offlineConnector.path}/entrypoint.sh`, { detached: true });
+
+    process.on('close', (code) => {
+      logApp.warn(`Process with ID: ${ps.pid} closed with: ${code}.`);
+    });
+
+    ps.stdout.on('data', () => {
+      globalRedis.set(`PID_${offlineConnector.name}`, ps.pid.toString());
+    });
+
+    ps.stderr.on('data', (data) => {
+      throw FunctionalError(`Process with ID: ${ps.pid} terminated: ${data}`);
+    });
+
+    return Promise.resolve(offlineConnector);
+  });
+};
+
 export const connectorDelete = async (user, connectorId) => {
   // TODO Delete all works for this connector
   await unregisterConnector(connectorId);
   return deleteElementById(user, connectorId, ENTITY_TYPE_CONNECTOR);
 };
 // endregion
+
+export const offlineConnectorModify = async (user, dirName, config) => {
+  const ymlStr = yml.dump(config);
+
+  return fsp.writeFile(`${getConnectorsBaseDir()}${dirName}/src/config.yml`, ymlStr).then(JSON.stringify);
+};
